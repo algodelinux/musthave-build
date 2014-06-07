@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# Crea un fichero /etc/pkgsync/musthave con la lista de paquetes instalados de forma
+# intencionada en el sistema.
+# Normalmente lo utilizamos para mantener el mismo software instalado en una serie de máquinas
+# mediante pkgsync, aunque también podríamos usarlo para clonar los paquetes instalados en otra
+# máquina con dpkg --set-selections.
+#
+# Esteban M. Navas Martín
+# algodelinux@gmail.com
+# 06/06/2014
+
+test -d /etc/pkgsync || mkdir /etc/pkgsync
+
+codename=`lsb_release --codename | cut -f2`
+
+case $codename in
+"squeeze")
+  aptitude show "?installed ?not(?priority(required)) ?not(?essential) ?not(?automatic)" | grep -e ^Package -e ^Paquete | cut -f 2 -d " " | sort > /etc/pkgsync/musthave
+  ;;
+"wheezy")
+  aptitude show "?installed ?not(?priority(required)) ?not(?essential) ?not(?automatic)" | grep -e '^Package:' -e '^Paquete:' -e '^Arquitectura:' -e '^Architecture:' | sed '$!N;s/\n/ /' | awk '{print $2,$4}' | tr ' ' ':' | sort > /etc/pkgsync/musthave
+  ;;
+esac
+
+
