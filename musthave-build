@@ -9,17 +9,30 @@
 # Esteban M. Navas Martín
 # algodelinux@gmail.com
 # 06/06/2014
+# Modificado: 20/06/2014
 
 test -d /etc/pkgsync || mkdir /etc/pkgsync
 
 codename=`lsb_release --codename | cut -f2`
+arquitectura=`uname -m`
 
 case $codename in
 "squeeze")
   aptitude show "?installed ?not(?priority(required)) ?not(?essential) ?not(?automatic)" | grep -e ^Package -e ^Paquete | cut -f 2 -d " " | sort > /etc/pkgsync/musthave
   ;;
 "wheezy")
-  aptitude show "?installed ?not(?priority(required)) ?not(?essential) ?not(?automatic)" | grep -e '^Package:' -e '^Paquete:' -e '^Arquitectura:' -e '^Architecture:' | sed '$!N;s/\n/ /' | awk '{print $2,$4}' | tr ' ' ':' | sort > /etc/pkgsync/musthave
+  aptitude show "?installed ?not(?priority(required)) ?not(?essential) ?not(?automatic) ?multiarch(same)" | grep -e ^Package -e ^Paquete | cut -f 2 -d " " > /tmp/same
+  aptitude show "?installed ?not(?priority(required)) ?not(?essential) ?not(?automatic) ?multiarch(none)" | grep -e ^Package -e ^Paquete | cut -f 2 -d " " > /tmp/none
+  aptitude show "?installed ?not(?priority(required)) ?not(?essential) ?not(?automatic) ?multiarch(foreign)" | grep -e ^Package -e ^Paquete | cut -f 2 -d " " > /tmp/foreign
+  case $arquitectura in
+  "x86_64")
+     sed -i 's/\(.*\)/\1:amd64/' /tmp/same
+  ;;
+  "i686")
+     sed -i 's/\(.*\)/\1:i386/' /tmp/same
+  ;;
+  esac
+  sort -u -o /etc/pkgsync/musthave /tmp/same /tmp/none /tmp/foreign
   ;;
 esac
 
