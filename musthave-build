@@ -10,30 +10,32 @@
 # algodelinux@gmail.com
 # 06/06/2014
 # Modificado: 20/06/2014
+# Modificado: 26/10/2014
 
 test -d /etc/pkgsync || mkdir /etc/pkgsync
 
 codename=`lsb_release --codename | cut -f2`
-arquitectura=`uname -m`
 
 case $codename in
 "squeeze")
+  echo "Generando lista de paquetes instalados en /etc/pkgsync/musthave..."
   aptitude show "?installed ?not(?priority(required)) ?not(?essential) ?not(?automatic)" | grep -e ^Package -e ^Paquete | cut -f 2 -d " " | sort > /etc/pkgsync/musthave
   ;;
 "wheezy")
-  aptitude show "?installed ?not(?priority(required)) ?not(?essential) ?not(?automatic) ?multiarch(same)" | grep -e ^Package -e ^Paquete | cut -f 2 -d " " > /tmp/same
-  aptitude show "?installed ?not(?priority(required)) ?not(?essential) ?not(?automatic) ?multiarch(none)" | grep -e ^Package -e ^Paquete | cut -f 2 -d " " > /tmp/none
-  aptitude show "?installed ?not(?priority(required)) ?not(?essential) ?not(?automatic) ?multiarch(foreign)" | grep -e ^Package -e ^Paquete | cut -f 2 -d " " > /tmp/foreign
-  case $arquitectura in
-  "x86_64")
-     sed -i 's/\(.*\)/\1:amd64/' /tmp/same
-  ;;
-  "i686")
-     sed -i 's/\(.*\)/\1:i386/' /tmp/same
-  ;;
-  esac
-  sort -u -o /etc/pkgsync/musthave /tmp/same /tmp/none /tmp/foreign
+  echo "Generando lista de paquetes instalados en /etc/pkgsync/musthave..."
+  aptitude show "?installed ?not(?priority(required)) ?not(?essential) ?not(?automatic)" | grep -e ^Package -e ^Paquete | cut -f 2 -d " " | sort > /etc/pkgsync/musthave
+  echo "Obteniendo lista de paquetes multiarch..."
+  aptitude show "?installed ?multiarch(same)" | grep -e ^Package -e ^Paquete | cut -f 2 -d " " > /tmp/same
+  sort -u -o /tmp/same /tmp/same
+
+  echo "Procesando lista de paquetes multiarch..."
+  for paquete in `cat /tmp/same`; do
+      sed -i 's|$paquete||' /etc/pkgsync/musthave
+      dpkg -l|grep "$paquete:i386" 1>/dev/null && echo "$paquete:i386" >> /etc/pkgsync/musthave
+      dpkg -l|grep "$paquete:amd64" 1>/dev/null && echo "$paquete:amd64" >> /etc/pkgsync/musthave
+  done
+  sort -u -o /etc/pkgsync/musthave /etc/pkgsync/musthave
   ;;
 esac
 
-
+echo "Proceso concluido."
